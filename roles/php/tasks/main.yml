@@ -1,5 +1,6 @@
 ---
-# playbook to install and configure general components of a Comanage machine
+# playbook to install and configure general components of a COmanage
+# machine
 
 #- name: Check php software
 #  service:
@@ -35,3 +36,5 @@
 - name: Ensure php5.6 is used when php is called
   command: update-alternatives --set php /usr/bin/php5.6
   become: yes
+  tags:
+    - skip_ansible_lint   # Suppres ansible-lint warning [ANSIBLE0012]

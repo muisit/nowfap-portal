@@ -4,27 +4,59 @@
 require 'ipaddr'
 require 'securerandom'
 
-#  Please change the below values to something that makes sence to you.
-comanage_version    = "develop"
+#####
+#
+#  Please change the below values to something that makes sense to you.
+#
+#####
+comanage_version    = "2.0.0"
 
-machinesNames       = Array["portal", "ldap", "ssh"]
+# Define the host name for each of the three VMs
+hostname_portal     = "portal"
+hostname_ldap       = "ldap"
+hostname_ssh        = "ssh"
+
+# Define the start address of the first VM. Successive VMs will get
+# successive IP addresses.
+start_ip_address    = IPAddr.new('192.168.64.10')
+
+# These values, amongst others, are used to create the SP metadata
 domain              = "example.org"
-fqdn_name           = "#{machinesNames[0]}.#{domain}"
-ldap_fqdn_name      = "#{machinesNames[1]}.#{domain}"
 given_name          = "John"
 surname             = "Doe"
 email               = "john.doe@example.org"
+service_description = "This is a demo instance for COmanage testing purposes"
+display_name        = "COmanage DEMO - #{given_name} #{surname}"
+
+# These values are used for certificates
+country             = "NL"
+state               = "North-Holland"
+locality            = "Amsterdam"
 organisation        = "Example.org Ltd."
-subject             = "/C=NL/ST=North-Holland/L=Amsterdam/O=IT/CN=#{fqdn_name}"
+organisation_unit   = "IT"
 ssl_cert_days_valid = 365
 
-ip_address          = IPAddr.new('192.168.64.10')
-machineIP           = Hash.new
-
+# The credentials for the admin user in LDAP
 ldap_admin          = "admin"
 ldap_passwd         = "Please-change-me!"
 
-#  Contruct the ldap_basedn based on the domain variable.
+# Where the CA, in case of self singed certificates, stores its
+# certificates and configuration files.
+ca_path = "ca"
+ca_path_domain = "#{ca_path}/#{domain}"
+
+#####
+#
+#  No need to change anything below these lines.
+#
+#####
+
+machinesNames       = Array[hostname_portal, hostname_ldap, hostname_ssh]
+fqdn_name           = "#{machinesNames[0]}.#{domain}"
+ldap_fqdn_name      = "#{machinesNames[1]}.#{domain}"
+subject             = "/C=#{country}/ST=#{state}/L=#{locality}/O='#{organisation}'/OU=#{organisation_unit}/CN=#{ldap_fqdn_name}"
+
+#  Construct the ldap_basedn based on the domain variable.
 ldap_basedn = ""
 domainComponents = domain.split('.')
 domainComponents.each_with_index do |dc, index|
@@ -35,6 +67,8 @@ domainComponents.each_with_index do |dc, index|
 end
 
 #  Determine IP addresses to the VMs.
+machineIP = Hash.new(machinesNames.length)
+ip_address = start_ip_address
 machinesNames.each { |machineName|
     machineIP.store(machineName, ip_address.to_s)
     ip_address = ip_address.succ
@@ -53,7 +87,7 @@ Vagrant.configure("2") do |config|
             vbox.memory = 1024
             vbox.name = "portal"
         end
-        portal.vm.network "private_network", ip: "#{machineIP["portal"]}"
+        portal.vm.network "private_network", ip: "#{machineIP[hostname_portal]}"
         portal.vm.hostname = "portal.#{domain}"
    end
 
@@ -62,7 +96,7 @@ Vagrant.configure("2") do |config|
             vbox.memory = "512"
             vbox.name = "ldap"
         end
-        ldap.vm.network "private_network", ip: "#{machineIP["ldap"]}"
+        ldap.vm.network "private_network", ip: "#{machineIP[hostname_ldap]}"
         ldap.vm.hostname = "ldap.#{domain}"
    end
 
@@ -71,28 +105,13 @@ Vagrant.configure("2") do |config|
             vbox.memory = "512"
             vbox.name = "ssh"
         end
-        ssh.vm.network "private_network", ip: "#{machineIP["ssh"]}"
+        ssh.vm.network "private_network", ip: "#{machineIP[hostname_ssh]}"
         ssh.vm.hostname = "ssh.#{domain}"
     end
 
     config.vm.provision "ansible_local" do |ansible|
         ansible.playbook = "comanage.yml"
-#        ansible.verbose = true
-#        ansible.install = true
-#        ansible.install_mode = "pip"
-#        ansible.version = "2.2.1.0"
-
-        ansible.host_vars = {
-            "#{machinesNames[0]}" => {
-                "ansible_user" => "ubuntu"
-            },
-            "#{machinesNames[1]}" => {
-                "ansible_user" => "ubuntu"
-            },
-            "#{machinesNames[2]}" => {
-                "ansible_user" => "ubuntu"
-            }
-        }
+        ansible.extra_vars = { ansible_user: 'ubuntu' }
 
         ansible.groups = {
             "all" => ["#{machinesNames[0]}", "#{machinesNames[1]}", "#{machinesNames[2]}"],
@@ -102,6 +121,7 @@ Vagrant.configure("2") do |config|
             "phpldapadmin" => ["#{machinesNames[0]}"],
 
             "all:vars" => {
+                "domain_name" => "#{domain}",
                 "ldap_server" => "#{ldap_fqdn_name}",
                 "organisation" => "#{organisation}",
                 "ldap_admin" => "#{ldap_admin}",
@@ -110,22 +130,35 @@ Vagrant.configure("2") do |config|
                 "ldap_rootdn" => "cn=#{ldap_admin},#{ldap_basedn}"
             },
             "comanage-portal:vars" => {
-                "certificate" => "/etc/ssl/certs/#{fqdn_name}.pem",
-                "certificate_key" => "/etc/ssl/private/#{fqdn_name}.key",
-                "sp_hostname" => "#{fqdn_name}",
+                "sp_hostname" => "#{machineIP[hostname_portal]}",
                 "sp_protocol" => "https://",
                 "sp_path" => "/registry/auth/sp",
                 "sp_random_part" => SecureRandom.uuid,
+                "service_description" => "#{service_description}",
+                "service_display_name" => "#{display_name}",
                 "comanage_version" => "#{comanage_version}",
                 "given_name" => "#{given_name}",
                 "surname" => "#{surname}",
                 "email_contact" => "#{email}",
                 "organisation" => "#{organisation}",
-                "subject" => "#{subject}",
-                "cert_days_valid" => "#{ssl_cert_days_valid}",
-                "cert_key_dest" => "/etc/ssl/private/#{fqdn_name}.key",
-                "cert_dest" => "/etc/ssl/certs/#{fqdn_name}.pem"
+                "certificate_subject" => "#{subject}",
+                "certificate_ca" => "self-signed",
+                "certificate_days_valid" => "#{ssl_cert_days_valid}",
+                "certificate_key_dest" => "/etc/ssl/private/#{fqdn_name}.key",
+                "certificate_dest" => "/etc/ssl/certs/#{fqdn_name}.pem"
             },
+            "ldap-server:vars" => {
+                "certificate_ca" => "self-signed",
+                "certificate_subject" => "/C=#{country}/ST=#{state}/L=#{locality}/O='#{organisation}'/OU=#{organisation_unit}/CN=#{fqdn_name}",
+                "certificate_dest" => "/etc/ldap/ldap-server.pem",
+                "certificate_key_dest" => "/etc/ldap/ldap-server.key",
+                "certificate_days_valid" => 365,
+                "organisation" => "#{organisation}",
+                "email_contact" => "#{email}",
+                "ca_certs_path" => "#{ca_path_domain}/certs",
+                "ca_private_path" => "#{ca_path_domain}/private",
+                "ca_templates_path" => "#{ca_path_domain}/templates",
+            }
         }
     end
 end

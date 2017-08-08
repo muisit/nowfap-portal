@@ -4,12 +4,28 @@ packages:
   - ldap-utils
   - unzip
 
-ldap_schema_dir: ldap_schemas
+ansible_user_home: /home/{{ ansible_user }}
+
+bin_dir:         "{{ ansible_user_home }}/bin"
+ldap_schema_dir: "{{ ansible_user_home }}/ldap_schemas"
+ldif_dir:        "{{ ansible_user_home }}/ldif"
+downloads_dir:   "{{ ansible_user_home }}/downloads"
+
+directories:
+  - "{{ bin_dir }}"
+  - "{{ ldap_schema_dir }}"
+  - "{{ ldif_dir }}"
+  - "{{ downloads_dir }}"
 
 eduPersonSchema_ldif: openLdapEduperson-201602DV.ldif
 eduPersonSchema_zip: 2xOpenLdapEduPerson-201602.zip
-eduPersonSchema_url: https://spaces.internet2.edu/download/attachments/2309/{{ eduPersonSchema_zip }}
+eduPersonSchema_url:
+  "https://spaces.internet2.edu/download/attachments/2309/\
+   {{ eduPersonSchema_zip }}"
 
 ldapPublicKey: openssh-lpk-openldap
 ldapPublicKey_ldif: openssh-lpk-openldap.ldif
-ldapPublicKeySchema_url: https://raw.githubusercontent.com/AndriiGrytsenko/openssh-ldap-publickey/master/misc/openssh-lpk-openldap.schema
+ldapPublicKey_schema: openssh-lpk-openldap.schema
+ldapPublicKeySchema_url:
+  "https://raw.githubusercontent.com/AndriiGrytsenko/\
+  openssh-ldap-publickey/master/misc/openssh-lpk-openldap.schema"

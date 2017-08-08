@@ -1,7 +1,7 @@
 ---
 packages:
   - apache2
-  - certbot
+  #  - certbot
   - ldap-utils
   - libapache2-mod-auth-mellon
   - libapache2-mod-php5.6
@@ -20,6 +20,9 @@ packages:
   - postfix
   - python-certbot-apache
   - python-mysqldb
+  - software-properties-common
+  - dnsutils
+  - cron
 
 packagesfastcgi:
   - libapache2-mod-fastcgi

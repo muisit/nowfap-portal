@@ -1,0 +1,29 @@
+sudo: required
+
+language: python
+
+env:
+  - distro=ubuntu:16.04
+    #  - distro=ubuntu:17.04
+
+services:
+  - docker
+
+before_install:
+  - docker pull $distro
+  - sudo useradd -m ubuntu
+  - sudo apt install gnutls-bin
+
+install:
+  - pip install tox-travis
+
+script:
+  - scripts/ci-test $distro
+
+notifications:
+  slack:
+    rooms:
+      secure: "3jm1utyInG8j1n9wyxVqI7l+yGyZW9nr3+/qFJT+lox0pWIzQ8JvRBhawqY4hkE47y05Xif7B9icwlZBqyo29GMPaj22FY6egAdbbSrGEXl/0TC7ZHOiKcjova+ACQBeT2CA5k4wqEQfIgHMgoW6XhfqexNdFUmbtiVzlvYga9QQixQY0spoBSSwjMgmmCPj6xE2FKJw21HcauUOHfeN7w5mNobT+e4rP9SUouC/SUmiWZIcbuhSqtg6My1u+Mn1ZaoAnhyjzWlDLa+eYhLyEbvBldskvCyXAQMU/OYkNj3C1fHAUwsCzHbfePcCf74SvSCdKhDey2frI9bMcjHEOflXDz862va4Iwac9RJmWC9+VM92N/vg/0eZMGONTqS6iNxvCybprYBR9hCB+rsatwcghC9Ts0PqGtmehfbo/ip97sHUqUei86f/T43vvsR9UVhTDKNijqlThA+Pkx0R+8urxvM6zumLapR6q1i4HljwuXlZO0W2/Vx0/Q0wVU1UenB8rF8yT8zKeVqQff8B7FqMnWQ9M6mMv32XLOplvpL+0lC6eDiUNVyxyhbo6f0kgPFycX/96qiYoXC+6wOg0RFx9puh5LhAlXsD5trqwvAe13eOPhXmP9aFPqGyV0Isl65wlMykAW6MVZvP+am8BjhDC4bjeYYg0xg4LflaZnE="
+    on_failure: always
+
+# vim: tw=2:sw=2

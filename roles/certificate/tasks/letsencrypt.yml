@@ -1,19 +1,42 @@
 ---
 
-- include_vars: "letsencrypt.yml"
+- name: debug
+  debug:
+    var:
+      certificate_ca
+
+- name: Include variables
+  include_vars: "letsencrypt.yml"
 
 - name: Determine if Apache is running
   command: systemctl is-active apache2
   failed_when: false
   register: apache2_active
+  tags:
+    - skip_ansible_lint   # Suppress ansible-lint warning [ANSIBLE0012]
 
-- set_fact:
+- name: Setting fact if Apache is running
+  set_fact:
     certbot_plugin: apache
   when: apache2_active.stdout == 'active'
 
-- set_fact:
+- name: Set fact when Apache is not running
+  set_fact:
     certbot_plugin: standalone
-  when: apache2_active.stdout == 'inactive'
+  when: (apache2_active.stdout == 'inactive') or
+        (apache2_active.stdout == 'failed')
 
 - name: Create a let's encrypt certificate
   command: certbot {{ certbot_arguments | join(' ') }}
+  tags:
+    - skip_ansible_lint   # Suppress ansible-lint warning [ANSIBLE0012]
+
+- name: Link to certificate
+  file:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    state: link
+  with_items:
+    - "{{ certificate_files }}"
+  tags:
+    - skip_ansible_lint   # Suppress ansible-lint warning [ANSIBLE0012]

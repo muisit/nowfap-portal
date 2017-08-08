@@ -1,9 +1,12 @@
 ---
 
+hostname: ldap.example.org
+
 ldap_admin: admin
 ldap_admin_passwd: ChangeThisSecret
 ldap_basedn: dc=ldap,dc=example,dc=org
 ldap_rootdn: "cn={{ ldap_admin }},{{ ldap_basedn }}"
 
-certificate_ca: "self-signed"
 organisation: example-acme
+
+certificate_ca: "self-signed"
